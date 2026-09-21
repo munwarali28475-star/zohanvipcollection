@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Zohan ViP Collection</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f7f7f7;color:#171717}
+header{background:#111;color:#fff;padding:18px 16px;position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between}
+.logo{font-size:22px;font-weight:800}.vip{color:#d8b35a}.cart{background:#d8b35a;color:#111;border:0;border-radius:22px;padding:10px 15px;font-weight:700}
+.hero{background:linear-gradient(135deg,#111,#292929);color:white;text-align:center;padding:55px 20px}
+.hero h1{font-size:38px;margin:0 0 10px}.hero p{color:#ddd;margin:0 0 24px}
+.btn{border:0;border-radius:10px;padding:12px 18px;font-weight:700;cursor:pointer;background:#d8b35a;color:#111}
+section{max-width:1100px;margin:auto;padding:28px 16px}.title{text-align:center;margin-bottom:22px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px}
+.card{background:white;border-radius:15px;overflow:hidden;box-shadow:0 3px 14px #0001}.card img{width:100%;height:190px;object-fit:cover;background:#eee}
+.info{padding:14px}.name{font-weight:700}.price{font-size:20px;font-weight:800;margin:8px 0 12px}
+.card .btn{width:100%}.empty{text-align:center;padding:30px;color:#777}
+footer{background:#111;color:#ddd;text-align:center;padding:25px;margin-top:25px}
+.modal{display:none;position:fixed;inset:0;background:#0008;z-index:10;padding:15px}.box{background:white;max-width:520px;margin:30px auto;border-radius:16px;padding:20px;max-height:90vh;overflow:auto}
+input,textarea{width:100%;padding:12px;border:1px solid #ddd;border-radius:9px;margin:6px 0 12px}label{font-size:13px;font-weight:700}
+.row{display:flex;justify-content:space-between;gap:10px;align-items:center;margin:10px 0}.qty button{padding:5px 10px}.close{float:right;border:0;background:none;font-size:22px}
+.admin{background:#fff;padding:18px;border-radius:15px;box-shadow:0 3px 14px #0001}
+.small{font-size:13px;color:#777}
+</style>
+</head>
+<body>
+<header>
+<div class="logo">Zohan <span class="vip">ViP Collection</span></div>
+<button class="cart" onclick="openCart()">🛒 Cart (<span id="count">0</span>)</button>
+</header>
+
+<div class="hero">
+<h1>Zohan ViP Collection</h1>
+<p>Premium Products at the Best Prices</p>
+<button class="btn" onclick="document.getElementById('products').scrollIntoView({behavior:'smooth'})">Shop Now</button>
+</div>
+
+<section id="products">
+<h2 class="title">Our Products</h2>
+<div id="grid" class="grid"></div>
+</section>
+
+<section>
+<div class="admin">
+<h2>Quick Product Manager</h2>
+<p class="small">Add products from your phone. Products are saved in this browser.</p>
+<input id="pname" placeholder="Product name">
+<input id="pprice" type="number" placeholder="Selling price (Rs.)">
+<textarea id="pdesc" placeholder="Product description"></textarea>
+<label style="display:block;margin-bottom:6px">Product Image</label>
+<input id="pimagefile" type="file" accept="image/*">
+<div id="preview" style="margin:8px 0"></div>
+<button class="btn" onclick="addProduct()">Add Product</button>
+</div>
+</section>
+
+<footer>© 2026 Zohan ViP Collection • WhatsApp Orders Available</footer>
+
+<div id="cartModal" class="modal">
+<div class="box">
+<button class="close" onclick="closeCart()">×</button>
+<h2>Your Cart</h2><div id="cartItems"></div>
+<div class="row"><b>Subtotal</b><b>Rs. <span id="subtotal">0</span></b></div>
+<hr>
+<h3>Checkout</h3>
+<label>Customer Name</label><input id="cname" placeholder="Your name">
+<label>Phone Number</label><input id="cphone" placeholder="03xxxxxxxxx">
+<label>Delivery Address</label><textarea id="caddress" placeholder="Complete address"></textarea>
+<label>Order Notes (optional)</label><textarea id="notes" placeholder="Any notes"></textarea>
+<button class="btn" style="width:100%" onclick="placeOrder()">Place Order on WhatsApp</button>
+</div></div>
+
+<script>
+const WA="923487598284";
+let products=JSON.parse(localStorage.getItem("zohan_products")||"null");
+if(products===null) products=[];
+let cart=JSON.parse(localStorage.getItem("zohan_cart")||"[]");
+
+function save(){localStorage.setItem("zohan_products",JSON.stringify(products));localStorage.setItem("zohan_cart",JSON.stringify(cart))}
+function render(){
+ const g=document.getElementById("grid");
+ g.innerHTML=products.map(p=>`<div class="card">
+ ${p.image?`<img src="${esc(p.image)}" alt="">`:`<div style="height:190px;display:grid;place-items:center;background:#eee;font-size:48px">🛍️</div>`}
+ <div class="info"><div class="name">${esc(p.name)}</div><div class="small" style="margin-top:6px;line-height:1.4">${esc(p.description||"")}</div><div class="price">Rs. ${p.price.toLocaleString()}</div>
+ <button class="btn" onclick="add(${p.id})">Add to Cart</button></div></div>`).join("");
+ document.getElementById("count").textContent=cart.reduce((a,x)=>a+x.qty,0);
+}
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+function add(id){let x=cart.find(a=>a.id===id);if(x)x.qty++;else cart.push({id,qty:1});save();render();openCart()}
+function openCart(){renderCart();document.getElementById("cartModal").style.display="block"}
+function closeCart(){document.getElementById("cartModal").style.display="none"}
+function renderCart(){
+ let total=0;const el=document.getElementById("cartItems");
+ if(!cart.length){el.innerHTML='<div class="empty">Your cart is empty.</div>';document.getElementById("subtotal").textContent="0";return}
+ el.innerHTML=cart.map(x=>{let p=products.find(q=>q.id===x.id);let t=p.price*x.qty;total+=t;return `<div class="row"><div><b>${esc(p.name)}</b><br>Rs. ${p.price.toLocaleString()}</div><div class="qty"><button onclick="change(${x.id},-1)">−</button> ${x.qty} <button onclick="change(${x.id},1)">+</button></div></div>`}).join("");
+ document.getElementById("subtotal").textContent=total.toLocaleString();
+}
+function change(id,d){let x=cart.find(a=>a.id===id);if(!x)return;x.qty+=d;if(x.qty<=0)cart=cart.filter(a=>a.id!==id);save();renderCart();render()}
+document.getElementById("pimagefile").addEventListener("change",function(){
+ const file=this.files[0], preview=document.getElementById("preview");
+ if(!file){preview.innerHTML="";return}
+ const reader=new FileReader();
+ reader.onload=e=>preview.innerHTML='<img src="'+e.target.result+'" style="width:100px;height:100px;object-fit:cover;border-radius:10px">';
+ reader.readAsDataURL(file);
+});
+
+function addProduct(){
+ let name=document.getElementById("pname").value.trim(),
+     price=Number(document.getElementById("pprice").value),
+     description=document.getElementById("pdesc").value.trim(),
+     file=document.getElementById("pimagefile").files[0];
+
+ if(!name||!price){alert("Product name and price are required.");return}
+
+ const finish=(image)=>{
+   products.push({id:Date.now(),name,price,description,image:image||""});
+   save();render();
+   document.getElementById("pname").value="";
+   document.getElementById("pprice").value="";
+   document.getElementById("pdesc").value="";
+   document.getElementById("pimagefile").value="";
+   document.getElementById("preview").innerHTML="";
+   alert("Product added successfully.");
+ };
+ if(file){
+   const reader=new FileReader();
+   reader.onload=e=>finish(e.target.result);
+   reader.readAsDataURL(file);
+ }else finish("");
+}
+function placeOrder(){
+ if(!cart.length){alert("Cart is empty.");return}
+ let n=document.getElementById("cname").value.trim(),ph=document.getElementById("cphone").value.trim(),ad=document.getElementById("caddress").value.trim(),notes=document.getElementById("notes").value.trim();
+ if(!n||!ph||!ad){alert("Please fill name, phone and address.");return}
+ let id="ZV"+Date.now().toString().slice(-7),total=0,lines=cart.map(x=>{let p=products.find(q=>q.id===x.id),t=p.price*x.qty;total+=t;return `• ${p.name} x${x.qty} — Rs. ${t.toLocaleString()}`}).join("\n");
+ let msg=`*Zohan ViP Collection - New Order*%0A%0AOrder ID: ${id}%0ACustomer: ${encodeURIComponent(n)}%0APhone: ${encodeURIComponent(ph)}%0AAddress: ${encodeURIComponent(ad)}%0A%0A${encodeURIComponent(lines)}%0A%0ASubtotal: Rs. ${total.toLocaleString()}%0ADelivery: To be confirmed%0AGrand Total: Rs. ${total.toLocaleString()}${notes?"%0ANotes: "+encodeURIComponent(notes):""}`;
+ window.open(`https://wa.me/${WA}?text=${msg}`,"_blank");
+}
+render();
+</script>
+</body></html>
